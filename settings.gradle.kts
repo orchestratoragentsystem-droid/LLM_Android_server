@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "Agent"
-include(":app", ":server")
+include(":server")
