@@ -23,7 +23,7 @@ jobs:
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
       - name: Build
         shell: bash
-        run: gradle assembleDebug --stacktrace > build.log 2>&1
+        run: gradle assembleDebug --stacktrace
       - name: Show error
         if: failure()
         shell: bash
