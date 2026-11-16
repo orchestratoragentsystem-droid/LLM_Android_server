@@ -15,12 +15,12 @@ jobs:
       - name: Accept Android licenses
         shell: bash
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-      - name: Install Gradle 8.7
+      - name: Install Gradle 8.9
         shell: bash
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
-          unzip -q gradle-8.7-bin.zip -d "$HOME"
-          echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
+          wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip
+          unzip -q gradle-8.9-bin.zip -d "$HOME"
+          echo "$HOME/gradle-8.9/bin" >> "$GITHUB_PATH"
       - name: Build
         shell: bash
         run: gradle assembleDebug --stacktrace > build.log 2>&1
