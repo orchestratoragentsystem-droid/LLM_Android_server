@@ -146,8 +146,10 @@ object Llm {
         } else {
             val msg: Message = if (toolTurn && hit) c.sendMessage(Convert.toolMessage(live, names))
             else c.sendMessage(Convert.liveContents(live, names))
-            text.append((msg.text ?: "").trim())
             take(msg)
+            // У Message в этой версии нет свойства text: текст даёт toString().
+            // Если модель вызвала инструмент, текст сообщения не берём.
+            if (calls.isEmpty()) text.append(msg.toString().trim())
             if (text.isNotEmpty()) job.events.add(Ev.Delta(text.toString()))
         }
 
