@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "LLM Server"
-include(":server")
+rootProject.name = "Agent"
+include(":app", ":server")
