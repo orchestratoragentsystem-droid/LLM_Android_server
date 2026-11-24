@@ -10,7 +10,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check keystore
         shell: bash
-        run: test -f debug.keystore || { echo "::error title=keystore::Нет debug.keystore: сначала запустите workflow Make keystore"; exit 1; }
+        run: |
+          test -f debug.keystore || { echo "::error title=keystore::Нет debug.keystore: сначала запустите workflow Make keystore"; exit 1; }
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
