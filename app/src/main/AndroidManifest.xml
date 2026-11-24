@@ -13,6 +13,7 @@
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
 
     <queries>
+        <package android:name="com.example.llmserver"/>
         <intent>
             <action android:name="android.intent.action.MAIN"/>
             <category android:name="android.intent.category.LAUNCHER"/>
@@ -50,6 +51,12 @@
         </activity>
 
         <activity android:name=".SettingsActivity" android:exported="false"/>
+
+        <activity
+            android:name=".CrashActivity"
+            android:exported="false"
+            android:process=":crash"
+            android:excludeFromRecents="true"/>
 
         <service
             android:name=".AgentService"
