@@ -26,7 +26,7 @@ android {
         applicationId = "com.example.llmserver"
         minSdk = 28
         targetSdk = 34
-        versionCode = (System.currentTimeMillis() / 60000L).toInt()
+        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
         versionName = "0.1"
         ndk { abiFilters += "arm64-v8a" }
         buildConfigField("String", "LITERT_VERSION", "\"$litertVersion\"")
