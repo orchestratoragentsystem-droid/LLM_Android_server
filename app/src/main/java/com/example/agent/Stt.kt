@@ -12,10 +12,13 @@ import org.vosk.Recognizer
 /** Общая офлайн-модель Vosk: для имени-активации и для расшифровки голосовых сообщений. */
 object Stt {
     @Volatile private var model: Model? = null
+    @Volatile private var noted = false
+
+    fun reset() { noted = false }
 
     suspend fun model(ctx: Context, say: (String) -> Unit = {}): Model {
         model?.let { return it }
-        val dir = VoskModel.ensure(ctx.applicationContext, say)
+        val dir = VoskModel.ensure(ctx.applicationContext, say)   // без сети; если модели нет — исключение
         return withContext(Dispatchers.IO) {
             synchronized(this@Stt) {
                 model ?: run {
@@ -26,7 +29,7 @@ object Stt {
         }
     }
 
-    /** Текст из записи 16 кГц mono PCM16. Пустая строка, если не удалось. */
+    /** Текст из записи 16 кГц mono PCM16. Пустая строка, если не удалось (сам голос в модель всё равно уходит). */
     suspend fun transcribe(ctx: Context, pcm: ByteArray, say: (String) -> Unit = {}): String = try {
         val m = model(ctx, say)
         withContext(Dispatchers.Default) {
@@ -44,6 +47,10 @@ object Stt {
             }
         }
     } catch (t: Throwable) {
+        if (!noted) {
+            noted = true
+            Chat.note("ℹ Расшифровка голоса в чате недоступна: ${t.message}. Звук всё равно уходит в модель напрямую.")
+        }
         ""
     }
 }

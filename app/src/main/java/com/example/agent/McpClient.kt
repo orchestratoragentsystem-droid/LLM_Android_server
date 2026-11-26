@@ -32,6 +32,8 @@ class McpClient(
     private val appCtx: Context,
 ) {
 
+    init { Net.check(appCtx, url) }
+
     class ToolInfo(
         val name: String,
         val description: String,

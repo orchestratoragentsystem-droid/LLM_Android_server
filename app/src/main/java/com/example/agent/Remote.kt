@@ -98,6 +98,7 @@ object Remote {
 
     /** Блокирующий вызов: выполнять только на потоке ввода-вывода. onDelta получает куски потокового ответа. */
     suspend fun post(ctx: Context, body: JSONObject, stream: Boolean, onDelta: suspend (String) -> Unit): RResult {
+        Net.check(ctx, base(ctx))
         val c = URL(base(ctx) + "/chat/completions").openConnection() as HttpURLConnection
         try {
             c.requestMethod = "POST"
@@ -194,6 +195,7 @@ object Remote {
 
     /** Короткий статус для главного экрана; заодно запоминает реальное окно модели сервера. */
     fun refreshHealth(ctx: Context): String = try {
+        Net.check(ctx, healthUrl(ctx))
         val (code, txt) = get(healthUrl(ctx), null)
         if (code != 200) "Сервер ответил HTTP $code"
         else {
@@ -215,6 +217,7 @@ object Remote {
         val sb = StringBuilder(refreshHealth(ctx))
         try {
             val base = base(ctx).removeSuffix("/v1")
+            Net.check(ctx, base)
             val (code, txt) = get("$base/queue", key(ctx))
             when (code) {
                 200 -> {
