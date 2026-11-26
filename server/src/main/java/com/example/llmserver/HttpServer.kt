@@ -16,11 +16,18 @@ class HttpRequest(
     val path: String,
     val headers: Map<String, String>,   // ключи в нижнем регистре
     val body: ByteArray,
-)
+    val local: Boolean,                 // запрос с этого же телефона
+) {
+    @Volatile var clientName: String? = null
+}
 
 /** Ответ: обычный (с Content-Length) или потоковый SSE (chunked). Соединение всегда закрывается. */
 class HttpResponse(private val socket: Socket) {
     private val out = BufferedOutputStream(socket.getOutputStream(), 16384)
+
+    /** HTTP-код отправленного ответа (для журнала). */
+    @Volatile var code = 0
+        private set
 
     /** true, если клиент оборвал соединение (запись не удалась). */
     @Volatile var failed = false
@@ -30,6 +37,7 @@ class HttpResponse(private val socket: Socket) {
         send(code, "application/json; charset=utf-8", body.toByteArray(Charsets.UTF_8))
 
     fun send(code: Int, contentType: String, body: ByteArray) {
+        this.code = code
         write("HTTP/1.1 $code ${reason(code)}\r\nContent-Type: $contentType\r\n" +
             "Content-Length: ${body.size}\r\nConnection: close\r\n\r\n")
         write(body)
@@ -37,6 +45,7 @@ class HttpResponse(private val socket: Socket) {
     }
 
     fun startSse() {
+        this.code = 200
         write("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\n" +
             "Transfer-Encoding: chunked\r\nConnection: close\r\n\r\n")
         flush()
@@ -142,7 +151,18 @@ class HttpServer(
             c.soTimeout = 30_000
             val req = readRequest(c)
             c.soTimeout = 0
-            if (req != null) handler(req, res)
+            if (req != null) {
+                val t0 = System.currentTimeMillis()
+                try {
+                    handler(req, res)
+                } finally {
+                    if (req.path != "/health") {
+                        ServerLog.add("${req.method} ${req.path} → ${res.code}" +
+                            (req.clientName?.let { " [$it]" } ?: "") +
+                            " ${(System.currentTimeMillis() - t0) / 1000.0} с")
+                    }
+                }
+            }
         } catch (e: BadReq) {
             res.json(e.code, Api.errorJson(e.message ?: "ошибка запроса", "invalid_request_error"))
         } catch (e: Throwable) {
@@ -158,7 +178,7 @@ class HttpServer(
         val parts = line.split(' ')
         if (parts.size < 2) throw BadReq(400, "плохой запрос")
         val method = parts[0].uppercase()
-        val path = parts[1].substringBefore('?')
+        val path = parts[1].substringBefore('?').let { if (it.length > 1) it.trimEnd('/') else it }
 
         val headers = HashMap<String, String>()
         while (true) {
@@ -187,7 +207,7 @@ class HttpServer(
             if (cl > MAX_BODY) throw BadReq(413, "тело запроса слишком большое (максимум ${MAX_BODY / 1048576} МБ)")
             copyExact(inp, cl, body)
         }
-        return HttpRequest(method, path, headers, body.toByteArray())
+        return HttpRequest(method, path, headers, body.toByteArray(), c.inetAddress?.isLoopbackAddress == true)
     }
 
     private fun readLine(inp: InputStream): String? {

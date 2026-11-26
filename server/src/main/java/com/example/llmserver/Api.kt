@@ -20,6 +20,14 @@ object Api {
 
     fun handle(ctx: Context, req: HttpRequest, res: HttpResponse) {
         try {
+            if (req.method == "OPTIONS") {
+                res.send(204, "text/plain", ByteArray(0))
+                return
+            }
+            if (req.method == "GET" && (req.path == "/" || req.path == "/v1")) {
+                res.json(200, JSONObject().put("ok", true).put("name", "llm-server").toString())
+                return
+            }
             if (req.method == "GET" && req.path == "/health") {
                 res.json(200, JSONObject().put("ok", true).put("model", Llm.status.value)
                     .put("ready", Llm.ready).put("window", Llm.window).toString())
@@ -30,6 +38,7 @@ object Api {
                 res.json(401, errorJson("неверный или отсутствующий ключ клиента", "invalid_api_key"))
                 return
             }
+            req.clientName = client.name
             when {
                 req.method == "GET" && (req.path == "/v1/models" || req.path == "/models") -> {
                     val m = JSONObject().put("id", "gemma-4-e2b").put("object", "model").put("owned_by", "local")
@@ -47,9 +56,14 @@ object Api {
 
     private fun authorize(ctx: Context, req: HttpRequest): Client? {
         val a = req.headers["authorization"]
-        val tok = if (a != null) a.substringAfter(' ', a).trim() else req.headers["x-auth-token"]?.trim()
-        if (tok.isNullOrEmpty()) return null
-        return Clients.byToken(ctx, tok)
+        val tok = (if (a != null) a.substringAfter(' ', a).trim() else null)
+            ?: req.headers["x-auth-token"]?.trim()
+            ?: req.headers["api-key"]?.trim()
+            ?: req.headers["x-api-key"]?.trim()
+        if (!tok.isNullOrEmpty()) Clients.byToken(ctx, tok)?.let { return it }
+        // запросы с этого же телефона без ключа принимаются только если это разрешено в настройках сервера
+        if (req.local && Cfg.openLocal(ctx)) return Client("local", "", 1)
+        return null
     }
 
     private fun queueJson(): JSONObject {
@@ -76,6 +90,10 @@ object Api {
 
     private fun chat(client: Client, req: HttpRequest, res: HttpResponse) {
         val cr = Convert.parse(String(req.body, Charsets.UTF_8))
+        val audioKb = cr.msgs.sumOf { m -> m.parts.filter { it.kind == "audio" }.sumOf { it.bytes?.size ?: 0 } } / 1024
+        val images = cr.msgs.sumOf { m -> m.parts.count { it.kind == "image" } }
+        ServerLog.add("${client.name}: запрос: сообщений ${cr.msgs.size}, звук $audioKb КБ, картинок $images, " +
+            "инструментов ${cr.tools.size}, stream=${cr.stream}")
         if (!Llm.ready) throw BadReq(503, "модель не загружена (${Llm.status.value})")
         val est = Convert.estimate(cr)
         if (est > Llm.window - 300) {

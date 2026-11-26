@@ -29,6 +29,7 @@ object Cfg {
     fun lan(c: Context) = sp(c).getBoolean("lan", false)
     fun autostart(c: Context) = sp(c).getBoolean("autostart", false)
     fun streamTools(c: Context) = sp(c).getBoolean("stream_tools", false)
+    fun openLocal(c: Context) = sp(c).getBoolean("open_local", false)
     fun backendMain(c: Context) = sp(c).getString("backend_main", "gpu") ?: "gpu"
     fun backendVision(c: Context) =
         sp(c).getString("backend_vision", if (totalRamMb(c) / 1024.0 < 9.5) "cpu" else "gpu") ?: "cpu"

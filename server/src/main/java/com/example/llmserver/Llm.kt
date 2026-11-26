@@ -253,7 +253,10 @@ object Llm {
 
     suspend fun download(ctx: Context) {
         val file = Cfg.modelFile(ctx)
-        if (file.exists()) { status.value = "модель уже скачана"; return }
+        if (file.exists()) {
+            if (!ready) runCatching { init(ctx) }
+            return
+        }
         if (Dl.running) return
         Dl.running = true
         try {

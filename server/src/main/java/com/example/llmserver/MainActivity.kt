@@ -93,6 +93,9 @@ class MainActivity : AppCompatActivity() {
             button("Сбросить автоограничение") { Cfg.putInt(this, Cfg.WIN_CAP, 0); recreate() }
         }
         check("Доступ из локальной сети (иначе только с этого телефона)", Cfg.lan(this)) { Cfg.putBool(this, "lan", it) }
+        check("Принимать запросы с этого телефона без ключа (для сторонних клиентов)", Cfg.openLocal(this)) {
+            Cfg.putBool(this, "open_local", it)
+        }
         check("Запускать при включении телефона", Cfg.autostart(this)) { Cfg.putBool(this, "autostart", it) }
         check("Потоковый ответ вместе с инструментами (экспериментально)", Cfg.streamTools(this)) {
             Cfg.putBool(this, "stream_tools", it)
