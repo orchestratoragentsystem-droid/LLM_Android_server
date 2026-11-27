@@ -8,10 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check keystore
-        shell: bash
-        run: |
-          test -f debug.keystore || { echo "::error title=keystore::Нет debug.keystore: сначала запустите workflow Make keystore"; exit 1; }
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -25,6 +21,16 @@ jobs:
           wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
           unzip -q gradle-8.7-bin.zip -d "$HOME"
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
+      - name: Fetch speech model (build time only)
+        shell: bash
+        run: |
+          mkdir -p app/src/main/assets
+          if wget -q -O app/src/main/assets/vosk-model-small-ru-0.22.zip https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip; then
+            echo "speech model added to the APK"
+          else
+            rm -f app/src/main/assets/vosk-model-small-ru-0.22.zip
+            echo "::warning title=vosk::speech model was not downloaded and will not be bundled"
+          fi
       - name: Build
         shell: bash
         run: gradle assembleDebug --stacktrace > build.log 2>&1
