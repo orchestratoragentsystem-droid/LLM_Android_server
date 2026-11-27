@@ -25,6 +25,7 @@ object Settings {
     const val TOOLS_ON = "tools_on"
     const val TOOLS_IMPL = "tools_impl"        // "openapi" | "kotlin"
     const val ENGINE_WINDOW = "engine_window"  // окно модели при загрузке движка, токенов
+    const val OFFLINE = "offline"              // 1 — запретить обращения к адресам вне домашней сети
     const val PROVIDER = "provider"            // "local" — встроенная модель, "server" — сервер модели
     const val SRV_URL = "srv_url"
     const val SRV_KEY = "srv_key"
@@ -52,6 +53,7 @@ object Settings {
     }
 
     fun winCap(c: Context) = int(c, WIN_CAP, 0)
+    fun offline(c: Context) = int(c, OFFLINE, 1) == 1
     /** Установлено ли приложение «LLM-сервер» на этом телефоне. */
     fun serverInstalled(c: Context): Boolean = try {
         c.packageManager.getPackageInfo("com.example.llmserver", 0)

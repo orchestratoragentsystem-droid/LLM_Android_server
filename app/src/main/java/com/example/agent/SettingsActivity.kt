@@ -79,6 +79,30 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun pageActivation() {
         hint("Как будить ассистента.")
+
+        val vs = TextView(this).apply { textSize = 13f; setPadding(0, dp(8), 0, dp(4)) }
+        fun voskText(): String = when {
+            VoskModel.installed(this) -> "Распознавание речи: модель установлена и работает на телефоне."
+            VoskModel.bundled(this) -> "Распознавание речи: модель вшита в приложение, распакуется при первом использовании."
+            else -> "Распознавание речи: модели нет. Режим «по имени» и расшифровка голоса в чате не работают " +
+                "(сам звук в модель уходит напрямую)."
+        }
+        vs.text = voskText()
+        col.addView(vs)
+        hint("Голос никуда не отправляется: распознавание идёт на телефоне. Скачивается только файл модели " +
+            "(45 МБ) с сайта проекта Vosk (alphacephei.com), и только по этой кнопке.")
+        button("Скачать модель распознавания речи (45 МБ)") {
+            vs.text = "Скачиваю…"
+            lifecycleScope.launch {
+                vs.text = try {
+                    VoskModel.download(this@SettingsActivity) { }
+                    Stt.reset()
+                    voskText()
+                } catch (t: Throwable) {
+                    "Не удалось скачать: ${t.message}"
+                }
+            }
+        }
         radio(Settings.ACT_MODE, listOf("button" to "По кнопке (микрофон на главном экране)",
             "name" to "По имени (слушаю всегда, на главном экране индикатор уровня)"), "button")
         edit("Имя ассистента (для режима «по имени»)", Settings.WAKE_NAME, "")
@@ -96,6 +120,15 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun pageModel() {
         hint("Версия LiteRT-LM в этой сборке: ${BuildConfig.LITERT_VERSION}")
+        col.addView(CheckBox(this).apply {
+            text = "Офлайн-режим: запретить обращения к адресам вне вашей сети"
+            isChecked = Settings.offline(this@SettingsActivity)
+            setOnCheckedChangeListener { _, on ->
+                Settings.put(this@SettingsActivity, Settings.OFFLINE, if (on) 1 else 0)
+            }
+        })
+        hint("Разрешены только этот телефон и адреса домашней сети. Скачивание моделей по кнопкам этим " +
+            "режимом не блокируется, но выполняется только по вашему нажатию.")
 
         hint("Откуда берётся модель:")
         radio(Settings.PROVIDER, listOf(
